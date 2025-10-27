@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Teleprompter Control</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link rel="stylesheet" href="https://fonts.cdnfonts.com/css/opendyslexic" />
+    <style>
+      /* Remote control style layout */
+      body {
+        background-color: #f5f5f5; /* Bulma's 'light' background color */
+        min-height: 100vh;
+      }
+
+      /* SUPER SIMPLE LOAD UI */
+      .simple-load-ui {
+        max-width: 500px;
+        margin: 0 auto;
+        text-align: center;
+      }
+
+      .simple-load-ui .title {
+        margin-bottom: 2rem;
+      }
+
+      .simple-load-ui .file-label {
+        width: 100%;
+      }
+
+      .simple-load-ui .file-cta {
+        font-size: 1.5rem;
+        padding: 2rem;
+      }
+
+      .simple-load-ui .button {
+        width: 100%;
+        font-size: 2rem;
+        padding: 1.5rem;
+      }
+
+      .simple-load-ui .has-text-grey-light {
+        margin-top: 2rem;
+        font-size: 1.2rem;
+      }
+
+      /* Status bar */
+      .status-bar {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        margin-bottom: 12px;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      }
+
+      .status-item {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        padding: 4px 8px;
+        border-radius: 4px;
+      }
+
+      /* Font preview */
+      #fontPreview {
+        padding: 1rem;
+        border-radius: 6px;
+        margin-top: 0.5rem;
+        transition: all 0.3s ease;
+      }
+
+      .status-item i {
+        width: 16px;
+        text-align: center;
+      }
+
+      /* Primary controls for filming */
+      .primary-controls {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        margin-bottom: 1.5rem;
+      }
+
+      .big-btn {
+        background: #222;
+        color: #fff;
+        border: none;
+        padding: 18px 26px;
+        font-size: 20px;
+        border-radius: 8px;
+        cursor: pointer;
+        box-shadow: 0 4px 0 rgba(0, 0, 0, 0.3);
+        transition: transform 0.1s, box-shadow 0.1s;
+      }
+
+      .big-btn:active {
+        transform: translateY(2px);
+        box-shadow: 0 2px 0 rgba(0, 0, 0, 0.2);
+      }
+
+      .small-btn {
+        padding: 10px 14px;
+        font-size: 16px;
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
+
+      /* Form elements */
+      label input[type="number"] {
+        width: 80px;
+        font-size: 16px;
+        padding: 6px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+      }
+
+      /* Helper text */
+      .shortcut-hint {
+        font-size: 13px;
+        color: #666;
+        margin-top: 8px;
+        font-style: italic;
+      }
+
+      /* Upload form */
+      .upload-form {
+        margin: 24px 0;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      }
+
+      .upload-container {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .file-input {
+        padding: 12px;
+        border: 2px dashed #ddd;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: border-color 0.2s, background-color 0.2s;
+      }
+
+      .file-input:hover {
+        border-color: #3273dc; /* Bulma's primary color */
+      }
+
+      .upload-controls {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .autoscale-label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #495057;
+        font-size: 14px;
+      }
+
+      .autoscale-label input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="section">
+      <div class="container">
+        <h1 class="title is-2">Teleprompter Control</h1>
+
+        <!-- Status Bar -->
+        <div class="status-bar box">
+          <div
+            id="statusServer"
+            class="status-item has-background-light has-text-grey"
+          >
+            <i class="fa-solid fa-server"></i> <span>server: ...</span>
+          </div>
+          <div
+            id="statusPrompter"
+            class="status-item has-background-light has-text-grey"
+          >
+            <i class="fa-solid fa-tablet-screen-button"></i>
+            <span>prompter: 0</span>
+          </div>
+          <div
+            id="statusScript"
+            class="status-item has-background-light has-text-grey"
+          >
+            <i class="fa-regular fa-file-lines"></i> <span>script: 0</span>
+          </div>
+          <div
+            id="statusScroll"
+            class="status-item has-background-light has-text-grey"
+          >
+            <i class="fa-solid fa-pause"></i> <span>stopped</span>
+          </div>
+        </div>
+
+        <div class="columns">
+          <!-- Left Column: Primary Controls -->
+          <div class="column is-two-thirds">
+            <div class="box">
+              <h2 class="title is-4">Controls</h2>
+              <!-- Primary Actions -->
+              <div class="primary-controls">
+                <button id="btnStart" class="button is-primary is-large">
+                  <i class="fa-solid fa-play"></i>&nbsp; START
+                </button>
+                <button id="btnStop" class="button is-danger is-large">
+                  <i class="fa-solid fa-stop"></i>&nbsp; STOP
+                </button>
+                <p class="shortcut-hint" style="margin-left: auto">
+                  Shortcut: <strong>Spacebar</strong> to toggle
+                </p>
+              </div>
+
+              <!-- Speed Controls -->
+              <div class="field is-horizontal">
+                <div class="field-label is-normal">
+                  <label class="label">Speed</label>
+                </div>
+                <div class="field-body">
+                  <div class="field has-addons">
+                    <p class="control">
+                      <button id="btnSlower" class="button is-light">
+                        <i class="fa-solid fa-backward-step"></i>
+                      </button>
+                    </p>
+                    <p class="control">
+                      <input
+                        id="speed"
+                        class="input"
+                        type="number"
+                        value="40"
+                        step="5"
+                        style="width: 80px"
+                      />
+                    </p>
+                    <p class="control">
+                      <button id="btnFaster" class="button is-light">
+                        <i class="fa-solid fa-forward-step"></i>
+                      </button>
+                    </p>
+                  </div>
+                  <p class="shortcut-hint" style="margin-left: 1rem">
+                    Shortcuts: <strong>&uarr;</strong> / <strong>&darr;</strong>
+                  </p>
+                </div>
+              </div>
+
+              <!-- Jump Controls -->
+              <div class="field is-horizontal">
+                <div class="field-label is-normal">
+                  <label class="label">Jump</label>
+                </div>
+                <div class="field-body">
+                  <div class="field is-grouped">
+                    <p class="control">
+                      <button id="btnJumpUp" class="button is-light">
+                        <i class="fa-solid fa-angles-up"></i>&nbsp; Jump Up
+                      </button>
+                    </p>
+                    <p class="control">
+                      <button id="btnJumpDown" class="button is-light">
+                        <i class="fa-solid fa-angles-down"></i>&nbsp; Jump Down
+                      </button>
+                    </p>
+                  </div>
+                  <p class="shortcut-hint" style="margin-left: 1rem">
+                    Shortcuts: <strong>PageUp</strong> /
+                    <strong>PageDown</strong>
+                  </p>
+                </div>
+              </div>
+
+              <!-- Font Size Controls -->
+              <div class="field is-horizontal">
+                <div class="field-label is-normal">
+                  <label class="label">Font Size</label>
+                </div>
+                <div class="field-body">
+                  <div class="field has-addons">
+                    <p class="control">
+                      <button id="btnFontMinus" class="button is-light">
+                        <i class="fa-solid fa-minus"></i>
+                      </button>
+                    </p>
+                    <p class="control">
+                      <input
+                        id="fontSize"
+                        class="input"
+                        type="number"
+                        value="48"
+                        step="2"
+                        style="width: 80px"
+                      />
+                    </p>
+                    <p class="control">
+                      <button id="btnFontPlus" class="button is-light">
+                        <i class="fa-solid fa-plus"></i>
+                      </button>
+                    </p>
+                  </div>
+                  <p class="shortcut-hint" style="margin-left: 1rem">
+                    Shortcuts: <strong>A</strong> / <strong>Z</strong>
+                  </p>
+                </div>
+              </div>
+
+              <!-- Other Controls -->
+              <div class="field is-horizontal">
+                <div class="field-label is-normal">
+                  <label class="label">Display</label>
+                </div>
+                <div class="field-body">
+                  <div class="field is-grouped">
+                    <div class="control">
+                      <label class="checkbox">
+                        <input type="checkbox" id="flipX" /> Flip Horizontal
+                        <span class="shortcut-hint">(<strong>X</strong>)</span>
+                      </label>
+                    </div>
+                    <div class="control">
+                      <label class="checkbox">
+                        <input type="checkbox" id="flipY" /> Flip Vertical
+                        <span class="shortcut-hint">(<strong>Y</strong>)</span>
+                      </label>
+                    </div>
+                    <div class="control">
+                      <button id="btnFit" class="button is-small">
+                        Fit to Screen
+                        <span class="shortcut-hint">(<strong>F</strong>)</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column: Script Management -->
+          <div class="column">
+            <div class="upload-form box">
+              <h2 class="title is-4">Script</h2>
+              <form
+                id="uploadForm"
+                action="/upload"
+                method="post"
+                enctype="multipart/form-data"
+              >
+                <div class="field">
+                  <div class="file is-boxed is-fullwidth">
+                    <label class="file-label">
+                      <input
+                        class="file-input"
+                        type="file"
+                        name="file"
+                        required
+                      />
+                      <span class="file-cta">
+                        <span class="file-icon">
+                          <i class="fas fa-upload"></i>
+                        </span>
+                        <span class="file-label"> Choose a file… </span>
+                      </span>
+                    </label>
+                  </div>
+                </div>
+                <div class="field">
+                  <label class="checkbox autoscale-label">
+                    <input type="checkbox" name="autoscale" />
+                    Autoscale font on load
+                  </label>
+                </div>
+                <div class="field">
+                  <button type="submit" class="button is-primary is-fullwidth">
+                    Load Script
+                  </button>
+                </div>
+              </form>
+              <hr />
+              <button id="goBtn" class="button is-success is-fullwidth">
+                Open Prompter Window
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      document.getElementById("goBtn").onclick = function () {
+        // Optionally, you could send a start event or just focus the prompter
+        window.open("/prompter", "_blank");
+      };
+    </script>
+
+    <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
+    <script>
+      const socket = io();
+      const statusServer = document.getElementById("statusServer");
+      const statusPrompter = document.getElementById("statusPrompter");
+      const statusScript = document.getElementById("statusScript");
+      const statusScroll = document.getElementById("statusScroll");
+
+      function updateStatusUI(s) {
+        // s: {prompter_count, script_len, scrolling, speed}
+        if (!s) return;
+        const pc = s.prompter_count || 0;
+        const sl = s.script_len || 0;
+        const scrolling = !!s.scrolling;
+        const speed = s.speed;
+        if (typeof speed !== "undefined") {
+          document.getElementById("speed").value = speed;
+        }
+        statusPrompter.className =
+          "status-item " +
+          (pc > 0
+            ? "has-background-success-light has-text-success"
+            : "has-background-light has-text-grey");
+        statusPrompter.innerHTML = `<i class="fa-solid fa-tablet-screen-button"></i> <span>prompter: ${pc}</span>`;
+        statusScript.className =
+          "status-item " +
+          (sl > 0
+            ? "has-background-success-light has-text-success"
+            : "has-background-light has-text-grey");
+        statusScript.innerHTML = `<i class="fa-regular fa-file-lines"></i> <span>script: ${sl}</span>`;
+        statusScroll.className =
+          "status-item " +
+          (scrolling
+            ? "has-background-warning-light has-text-warning"
+            : "has-background-light has-text-grey");
+        statusScroll.innerHTML = `<i class="fa-solid ${
+          scrolling ? "fa-play" : "fa-pause"
+        }"></i> <span>${scrolling ? "running" : "stopped"}</span>`;
+      }
+
+      // initial fetch of state
+      fetch("/state")
+        .then((r) => r.json())
+        .then((s) => {
+          updateStatusUI({
+            prompter_count: 0,
+            script_len: s.script_len,
+            scrolling: false,
+            speed: Number(document.getElementById("speed").value) || 0,
+          });
+        })
+        .catch(() => {});
+
+      socket.on("status", (s) => {
+        updateStatusUI(s);
+      });
+
+      // mark server as up
+      statusServer.className =
+        "status-item has-background-success-light has-text-success";
+      statusServer.innerHTML = `<i class="fa-solid fa-server"></i> <span>server: up</span>`;
+      // Map UI elements to socket events
+      function emitScroll(speed) {
+        socket.emit("control_event", { type: "scroll", speed });
+      }
+      function emitSetFont(size) {
+        socket.emit("control_event", { type: "set_font_size", size });
+      }
+      function emitFlip() {
+        const x = document.getElementById("flipX").checked;
+        const y = document.getElementById("flipY").checked;
+        socket.emit("control_event", { type: "flip", x, y });
+      }
+      function emitFit() {
+        socket.emit("control_event", { type: "fit_to_screen" });
+      }
+
+      document.getElementById("btnStart").addEventListener("click", (e) => {
+        e.preventDefault();
+        const speed = Number(document.getElementById("speed").value) || 0;
+        emitScroll(speed);
+      });
+      document.getElementById("btnStop").addEventListener("click", (e) => {
+        e.preventDefault();
+        emitScroll(0);
+      });
+      document.getElementById("btnFaster").addEventListener("click", (e) => {
+        e.preventDefault();
+        let s = Number(document.getElementById("speed").value) || 0;
+        s += 5;
+        document.getElementById("speed").value = s;
+        emitScroll(s);
+      });
+      document.getElementById("btnSlower").addEventListener("click", (e) => {
+        e.preventDefault();
+        let s = Number(document.getElementById("speed").value) || 0;
+        s = Math.max(0, s - 5);
+        document.getElementById("speed").value = s;
+        emitScroll(s);
+      });
+      document.getElementById("btnJumpUp").addEventListener("click", (e) => {
+        e.preventDefault();
+        socket.emit("control_event", { type: "jump", pixels: -200 });
+      });
+      document.getElementById("btnJumpDown").addEventListener("click", (e) => {
+        e.preventDefault();
+        socket.emit("control_event", { type: "jump", pixels: 200 });
+      });
+      document.getElementById("btnFit").addEventListener("click", (e) => {
+        e.preventDefault();
+        emitFit();
+      });
+
+      document.getElementById("fontSize").addEventListener("change", () => {
+        const size = Number(document.getElementById("fontSize").value);
+        emitSetFont(size);
+      });
+      document.getElementById("btnFontPlus").addEventListener("click", (e) => {
+        e.preventDefault();
+        let f = Number(document.getElementById("fontSize").value) || 48;
+        f += 2;
+        document.getElementById("fontSize").value = f;
+        emitSetFont(f);
+      });
+      document.getElementById("btnFontMinus").addEventListener("click", (e) => {
+        e.preventDefault();
+        let f = Number(document.getElementById("fontSize").value) || 48;
+        f = Math.max(8, f - 2);
+        document.getElementById("fontSize").value = f;
+        emitSetFont(f);
+      });
+
+      document.getElementById("flipX").addEventListener("change", () => {
+        emitFlip();
+      });
+      document.getElementById("flipY").addEventListener("change", () => {
+        emitFlip();
+      });
+
+      // Keyboard shortcuts
+      window.addEventListener("keydown", (e) => {
+        // Space toggles start/stop
+        if (e.code === "Space") {
+          e.preventDefault();
+          // toggle based on current speed
+          const speedInput = document.getElementById("speed");
+          const currentSpeed = Number(speedInput.value) || 0;
+          if (currentSpeed > 0) {
+            emitScroll(0);
+          } else {
+            emitScroll(40);
+          }
+        } else if (e.code === "ArrowUp") {
+          e.preventDefault();
+          let s = Number(document.getElementById("speed").value) || 0;
+          s += 5;
+          document.getElementById("speed").value = s;
+          emitScroll(s);
+        } else if (e.code === "ArrowDown") {
+          e.preventDefault();
+          let s = Number(document.getElementById("speed").value) || 0;
+          s = Math.max(0, s - 5);
+          document.getElementById("speed").value = s;
+          emitScroll(s);
+        } else if (e.key === "f" || e.key === "F") {
+          e.preventDefault();
+          emitFit();
+        } else if (e.key === "a" || e.key === "A") {
+          e.preventDefault();
+          let f = Number(document.getElementById("fontSize").value) || 48;
+          f += 2;
+          document.getElementById("fontSize").value = f;
+          emitSetFont(f);
+        } else if (e.key === "z" || e.key === "Z") {
+          e.preventDefault();
+          let f = Number(document.getElementById("fontSize").value) || 48;
+          f = Math.max(8, f - 2);
+          document.getElementById("fontSize").value = f;
+          emitSetFont(f);
+        } else if (e.key === "x" || e.key === "X") {
+          e.preventDefault();
+          document.getElementById("flipX").checked =
+            !document.getElementById("flipX").checked;
+          emitFlip();
+        } else if (e.key === "y" || e.key === "Y") {
+          e.preventDefault();
+          document.getElementById("flipY").checked =
+            !document.getElementById("flipY").checked;
+          emitFlip();
+        } else if (e.code === "PageUp") {
+          e.preventDefault();
+          // Simulate a click on the jump up button
+          document.getElementById("btnJumpUp").click();
+        } else if (e.code === "PageDown") {
+          e.preventDefault();
+          // Simulate a click on the jump down button
+          document.getElementById("btnJumpDown").click();
+        }
+      });
+    </script>
+  </body>
+</html>
