@@ -5,6 +5,7 @@ from flask_socketio import SocketIO, join_room, emit
 from convert import convert_to_paragraphs
 
 app = Flask(__name__)
+app.config['TEMPLATES_AUTO_RELOAD'] = True
 app.config['SECRET_KEY'] = 'dev'
 socketio = SocketIO(app, cors_allowed_origins='*', async_mode='eventlet')
 
