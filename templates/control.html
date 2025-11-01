@@ -222,11 +222,8 @@
               <h2 class="title is-4">Controls</h2>
               <!-- Primary Actions -->
               <div class="primary-controls">
-                <button id="btnStart" class="button is-primary is-large">
+                <button id="btnToggleScroll" class="button is-primary is-large">
                   <i class="fa-solid fa-play"></i>&nbsp; START
-                </button>
-                <button id="btnStop" class="button is-danger is-large">
-                  <i class="fa-solid fa-stop"></i>&nbsp; STOP
                 </button>
                 <p class="shortcut-hint" style="margin-left: auto">
                   Shortcut: <strong>Spacebar</strong> to toggle
@@ -429,7 +426,7 @@
         const sl = s.script_len || 0;
         const scrolling = !!s.scrolling;
         const speed = s.speed;
-        if (typeof speed !== "undefined") {
+        if (typeof speed !== "undefined" && speed > 0) {
           document.getElementById("speed").value = speed;
         }
         statusPrompter.className =
@@ -452,6 +449,15 @@
         statusScroll.innerHTML = `<i class="fa-solid ${
           scrolling ? "fa-play" : "fa-pause"
         }"></i> <span>${scrolling ? "running" : "stopped"}</span>`;
+
+        // Update toggle button state
+        const btn = document.getElementById("btnToggleScroll");
+        btn.innerHTML = scrolling
+          ? '<i class="fa-solid fa-stop"></i>&nbsp; STOP'
+          : '<i class="fa-solid fa-play"></i>&nbsp; START';
+        btn.className = scrolling
+          ? "button is-danger is-large"
+          : "button is-primary is-large";
       }
 
       // initial fetch of state
@@ -491,15 +497,18 @@
         socket.emit("control_event", { type: "fit_to_screen" });
       }
 
-      document.getElementById("btnStart").addEventListener("click", (e) => {
-        e.preventDefault();
-        const speed = Number(document.getElementById("speed").value) || 0;
-        emitScroll(speed);
-      });
-      document.getElementById("btnStop").addEventListener("click", (e) => {
-        e.preventDefault();
-        emitScroll(0);
-      });
+      document
+        .getElementById("btnToggleScroll")
+        .addEventListener("click", (e) => {
+          e.preventDefault();
+          const speedInput = document.getElementById("speed");
+          const currentSpeed = Number(speedInput.value);
+          if (statusScroll.innerText.includes("running")) {
+            socket.emit("control_event", { type: "scroll", speed: 0 });
+          } else {
+            emitScroll(currentSpeed);
+          }
+        });
       document.getElementById("btnFaster").addEventListener("click", (e) => {
         e.preventDefault();
         let s = Number(document.getElementById("speed").value) || 0;
@@ -560,11 +569,11 @@
           e.preventDefault();
           // toggle based on current speed
           const speedInput = document.getElementById("speed");
-          const currentSpeed = Number(speedInput.value) || 0;
-          if (currentSpeed > 0) {
-            emitScroll(0);
+          const currentSpeed = Number(speedInput.value);
+          if (statusScroll.innerText.includes("running")) {
+            socket.emit("control_event", { type: "scroll", speed: 0 });
           } else {
-            emitScroll(40);
+            emitScroll(currentSpeed);
           }
         } else if (e.code === "ArrowUp") {
           e.preventDefault();

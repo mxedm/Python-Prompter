@@ -73,9 +73,10 @@ def on_control_event(data):
     if t == 'set_font_size':
         ACTIVE['font_size'] = data.get('size')
     if t == 'scroll':
-        speed = data.get('speed')
-        ACTIVE['scrolling'] = bool(speed)
-        ACTIVE['speed'] = speed
+        speed = data.get('speed', -1) # Use -1 to distinguish from explicit 0
+        if speed >= 0:
+            ACTIVE['speed'] = speed
+        ACTIVE['scrolling'] = bool(ACTIVE['speed'])
     if t == 'set_font':
         ACTIVE['font'] = data.get('font', 'OpenDyslexic')
     if t == 'set_uppercase':
