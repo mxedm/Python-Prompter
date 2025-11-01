@@ -377,7 +377,9 @@
                         <span class="file-icon">
                           <i class="fas fa-upload"></i>
                         </span>
-                        <span class="file-label"> Choose a file… </span>
+                        <span class="file-label" id="fileName">
+                          Choose a file…
+                        </span>
                       </span>
                     </label>
                   </div>
@@ -389,7 +391,12 @@
                   </label>
                 </div>
                 <div class="field">
-                  <button type="submit" class="button is-primary is-fullwidth">
+                  <button
+                    id="loadBtn"
+                    type="submit"
+                    class="button is-primary is-fullwidth"
+                    disabled
+                  >
                     Load Script
                   </button>
                 </div>
@@ -414,6 +421,26 @@
     <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
     <script>
       const socket = io();
+
+      // --- File Upload UI ---
+      const fileInput = document.querySelector("#uploadForm .file-input");
+      const fileNameSpan = document.querySelector(
+        "#uploadForm .file-label .file-label"
+      );
+      const loadBtn = document.getElementById("loadBtn");
+
+      fileInput.onchange = () => {
+        if (fileInput.files.length > 0) {
+          fileNameSpan.innerText = fileInput.files[0].name;
+          // Enable buttons now that a file is selected
+          loadBtn.disabled = false;
+        }
+      };
+
+      document.getElementById("uploadForm").addEventListener("submit", () => {
+        loadBtn.innerText = "Loading...";
+      });
+
       const statusServer = document.getElementById("statusServer");
       const statusPrompter = document.getElementById("statusPrompter");
       const statusScript = document.getElementById("statusScript");
